@@ -1,0 +1,642 @@
+{
+  "id": null,
+  "title": "Fleet Status Dashboard",
+  "uid": "fleet-status",
+  "description": "Comprehensive fleet monitoring dashboard with vehicle status, events, and performance metrics",
+  "tags": ["fleet", "telematics", "monitoring"],
+  "style": "dark",
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 2,
+  "time": { "from": "now-24h", "to": "now" },
+  "refresh": "30s",
+  "timepicker": {
+    "collapse": false,
+    "enable": true,
+    "hidden": false,
+    "now": true,
+    "refresh_intervals": ["5s", "10s", "30s", "1m", "5m", "15m", "30m", "1h", "2h", "1d"],
+    "time_options": ["5m", "15m", "1h", "6h", "12h", "24h", "2d", "7d", "30d"],
+    "quickRanges": [
+      { "from": "now-1h", "to": "now", "display": "Last hour" },
+      { "from": "now-6h", "to": "now", "display": "Last 6 hours" },
+      { "from": "now-24h", "to": "now", "display": "Last 24 hours" },
+      { "from": "now-7d/d", "to": "now", "display": "Last 7 days" },
+      { "from": "now-30d/d", "to": "now", "display": "Last 30 days" }
+    ]
+  },
+  "schemaVersion": 38,
+  "version": 1,
+  "templating": {
+    "enable": true,
+    "list": [
+      { 
+        "type": "constant", 
+        "name": "var_tenant", 
+        "label": "Tenant", 
+        "query": "8a5e4d6c-1234-5678-9abc-def012345678",
+        "current": {
+          "value": "8a5e4d6c-1234-5678-9abc-def012345678",
+          "text": "8a5e4d6c-1234-5678-9abc-def012345678"
+        },
+        "options": [
+          {
+            "text": "8a5e4d6c-1234-5678-9abc-def012345678",
+            "value": "8a5e4d6c-1234-5678-9abc-def012345678",
+            "selected": true
+          }
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "name": "Annotations & Alerts",
+        "type": "dashboard",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "datasource": {
+          "type": "dashboard",
+          "uid": "-- Dashboard --"
+        },
+        "target": {
+          "type": "dashboard",
+          "tags": [],
+          "limit": 100,
+          "matchAny": false
+        }
+      }
+    ]
+  },
+  "links": [],
+  "x-navixy": {
+    "version": "1.0",
+    "schemaVersion": "1.0.0",
+    "execution": {
+      "endpoint": "/api/v1/sql/run",
+      "dialect": "postgresql",
+      "timeout_ms": 10000,
+      "max_rows": 10000,
+      "read_only": true,
+      "allowed_schemas": ["raw_telematics_data", "raw_business_data"]
+    },
+    "params": [
+      {
+        "name": "from",
+        "type": "time",
+        "label": "From",
+        "default": "now-24h",
+        "required": true,
+        "order": 1
+      },
+      {
+        "name": "to",
+        "type": "time",
+        "label": "To",
+        "default": "now",
+        "required": true,
+        "order": 2
+      },
+      {
+        "name": "tenant_id",
+        "type": "text",
+        "label": "Tenant ID",
+        "description": "Tenant identifier (UUID format)",
+        "default": null,
+        "required": true,
+        "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+        "format": "uuid",
+        "order": 3
+      }
+    ],
+    "parameters": {
+      "bindings": {
+        "tenant_id": "${var_tenant}",
+        "from": "${__from}",
+        "to": "${__to}"
+      }
+    }
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Active Vehicles",
+      "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
+      "datasource": null,
+      "targets": [],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "value": null, "color": "green" }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "graphMode": "none",
+        "colorMode": "value",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto"
+      },
+      "x-navixy": {
+        "sql": {
+          "statement": "SELECT COUNT(DISTINCT device_id)::int AS value FROM raw_telematics_data.tracking_data_core WHERE tenant_id = ${tenant_id} AND device_time >= ${__from}",
+          "params": { 
+            "tenant_id": { "type": "uuid" }, 
+            "from": { "type": "timestamptz" } 
+          },
+          "bindings": { 
+            "tenant_id": "${var_tenant}", 
+            "from": "${__from}" 
+          }
+        },
+        "dataset": { 
+          "shape": "kpi", 
+          "columns": { "value": { "type": "number" } } 
+        },
+        "verify": { 
+          "required_columns": ["value"], 
+          "min_rows": 1, 
+          "max_rows": 1 
+        },
+        "visualization": {
+          "displayMode": "value",
+          "valueFormat": "short",
+          "unit": "",
+          "decimals": 0,
+          "colorMode": "threshold",
+          "thresholds": [
+            { "value": null, "color": "green" }
+          ],
+          "size": "normal"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Total Events",
+      "gridPos": { "x": 4, "y": 0, "w": 4, "h": 4 },
+      "datasource": null,
+      "targets": [],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "value": null, "color": "blue" }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "graphMode": "none",
+        "colorMode": "value",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto"
+      },
+      "x-navixy": {
+        "sql": {
+          "statement": "SELECT COUNT(*)::int AS value FROM raw_telematics_data.events WHERE tenant_id = ${tenant_id} AND ts BETWEEN ${__from} AND ${__to}",
+          "params": { 
+            "tenant_id": { "type": "uuid" }, 
+            "from": { "type": "timestamptz" },
+            "to": { "type": "timestamptz" }
+          },
+          "bindings": { 
+            "tenant_id": "${var_tenant}", 
+            "from": "${__from}",
+            "to": "${__to}"
+          }
+        },
+        "dataset": { 
+          "shape": "kpi", 
+          "columns": { "value": { "type": "number" } } 
+        },
+        "verify": { 
+          "required_columns": ["value"], 
+          "min_rows": 1, 
+          "max_rows": 1 
+        },
+        "visualization": {
+          "displayMode": "value",
+          "valueFormat": "short",
+          "unit": "",
+          "decimals": 0,
+          "colorMode": "threshold",
+          "thresholds": [
+            { "value": null, "color": "blue" }
+          ],
+          "size": "normal"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Avg Speed",
+      "gridPos": { "x": 8, "y": 0, "w": 4, "h": 4 },
+      "datasource": null,
+      "targets": [],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "value": null, "color": "green" }
+            ]
+          },
+          "unit": "kmh"
+        },
+        "overrides": []
+      },
+      "options": {
+        "graphMode": "none",
+        "colorMode": "value",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto"
+      },
+      "x-navixy": {
+        "sql": {
+          "statement": "SELECT ROUND(AVG(speed)::numeric, 2) AS value FROM raw_telematics_data.tracking_data_core WHERE tenant_id = ${tenant_id} AND ts BETWEEN ${__from} AND ${__to} AND speed > 0",
+          "params": { 
+            "tenant_id": { "type": "uuid" }, 
+            "from": { "type": "timestamptz" },
+            "to": { "type": "timestamptz" }
+          },
+          "bindings": { 
+            "tenant_id": "${var_tenant}", 
+            "from": "${__from}",
+            "to": "${__to}"
+          }
+        },
+        "dataset": { 
+          "shape": "kpi", 
+          "columns": { "value": { "type": "number" } } 
+        },
+        "verify": { 
+          "required_columns": ["value"], 
+          "min_rows": 1, 
+          "max_rows": 1 
+        },
+        "visualization": {
+          "displayMode": "value",
+          "valueFormat": "short",
+          "unit": "kmh",
+          "decimals": 2,
+          "colorMode": "threshold",
+          "thresholds": [
+            { "value": null, "color": "green" },
+            { "value": 60, "color": "yellow" },
+            { "value": 80, "color": "red" }
+          ],
+          "size": "normal"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": "bargauge",
+      "title": "Events by Type",
+      "gridPos": { "x": 0, "y": 4, "w": 8, "h": 8 },
+      "datasource": null,
+      "targets": [],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "value": null, "color": "green" }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "valueMode": "color"
+      },
+      "x-navixy": {
+        "sql": {
+          "statement": "SELECT event_type AS category, COUNT(*)::int AS value FROM raw_telematics_data.events WHERE tenant_id = ${tenant_id} AND ts BETWEEN ${__from} AND ${__to} GROUP BY 1 ORDER BY 2 DESC LIMIT ${limit}",
+          "params": {
+            "tenant_id": { "type": "uuid" },
+            "from": { "type": "timestamptz" },
+            "to": { "type": "timestamptz" },
+            "limit": { "type": "int", "default": 20, "min": 1, "max": 1000 }
+          },
+          "bindings": { 
+            "tenant_id": "${var_tenant}", 
+            "from": "${__from}", 
+            "to": "${__to}" 
+          }
+        },
+        "dataset": { 
+          "shape": "category_value", 
+          "columns": { 
+            "category": { "type": "string" }, 
+            "value": { "type": "number" } 
+          } 
+        },
+        "verify": { 
+          "required_columns": ["category", "value"], 
+          "min_rows": 1, 
+          "max_rows": 1000 
+        },
+        "visualization": {
+          "orientation": "horizontal",
+          "stacking": "none",
+          "showValues": false,
+          "sortOrder": "desc",
+          "barSpacing": 0.15,
+          "colorPalette": "classic",
+          "showLegend": false,
+          "legendPosition": "bottom"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Speed Over Time",
+      "gridPos": { "x": 8, "y": 4, "w": 8, "h": 8 },
+      "datasource": null,
+      "targets": [],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "spanNulls": false,
+            "insertNulls": false,
+            "showPoints": "auto",
+            "pointSize": 5,
+            "pointSymbol": "circle",
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "value": null, "color": "green" }
+            ]
+          },
+          "unit": "kmh"
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "x-navixy": {
+        "sql": {
+          "statement": "SELECT DATE_TRUNC('hour', ts) AS time, AVG(speed)::numeric AS value FROM raw_telematics_data.tracking_data_core WHERE tenant_id = ${tenant_id} AND ts BETWEEN ${__from} AND ${__to} AND speed > 0 GROUP BY 1 ORDER BY 1",
+          "params": {
+            "tenant_id": { "type": "uuid" },
+            "from": { "type": "timestamptz" },
+            "to": { "type": "timestamptz" }
+          },
+          "bindings": { 
+            "tenant_id": "${var_tenant}", 
+            "from": "${__from}", 
+            "to": "${__to}" 
+          }
+        },
+        "dataset": { 
+          "shape": "time_value", 
+          "columns": { 
+            "time": { "type": "timestamp" }, 
+            "value": { "type": "number" } 
+          } 
+        },
+        "verify": { 
+          "required_columns": ["time", "value"], 
+          "min_rows": 1 
+        },
+        "visualization": {
+          "lineStyle": "solid",
+          "lineWidth": 2,
+          "showPoints": "auto",
+          "pointSize": 5,
+          "interpolation": "linear",
+          "fillArea": "below",
+          "showGrid": true,
+          "showLegend": true,
+          "legendPosition": "bottom",
+          "colorPalette": "classic"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "type": "table",
+      "title": "Recent Alarms",
+      "gridPos": { "x": 0, "y": 12, "w": 12, "h": 10 },
+      "datasource": null,
+      "targets": [],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "value": null, "color": "green" }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": []
+      },
+      "x-navixy": {
+        "sql": {
+          "statement": "SELECT ts, device_id, alarm_type, severity FROM raw_telematics_data.alarms WHERE tenant_id = ${tenant_id} AND ts BETWEEN ${__from} AND ${__to} ORDER BY ts DESC LIMIT ${limit}",
+          "params": {
+            "tenant_id": { "type": "uuid" },
+            "from": { "type": "timestamptz" },
+            "to": { "type": "timestamptz" },
+            "limit": { "type": "int", "default": 200, "min": 1, "max": 5000 }
+          },
+          "bindings": { 
+            "tenant_id": "${var_tenant}", 
+            "from": "${__from}", 
+            "to": "${__to}" 
+          }
+        },
+        "dataset": { 
+          "shape": "table", 
+          "columns": {
+            "ts": { "type": "timestamp" },
+            "device_id": { "type": "string" },
+            "alarm_type": { "type": "string" },
+            "severity": { "type": "string" }
+          }
+        },
+        "verify": { 
+          "required_columns": ["ts", "device_id", "alarm_type", "severity"] 
+        },
+        "visualization": {
+          "showHeader": true,
+          "sortable": true,
+          "pageSize": 50,
+          "showPagination": true,
+          "columnWidth": "auto",
+          "rowHighlighting": "hover",
+          "showTotals": false,
+          "totalsRow": "bottom"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "type": "piechart",
+      "title": "Vehicle Status Distribution",
+      "gridPos": { "x": 12, "y": 12, "w": 6, "h": 6 },
+      "datasource": null,
+      "targets": [],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "value": null, "color": "green" }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": ""
+        },
+        "pieType": "pie",
+        "tooltip": {
+          "mode": "single"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "x-navixy": {
+        "sql": {
+          "statement": "SELECT status AS category, COUNT(*)::int AS value FROM raw_telematics_data.devices WHERE tenant_id = ${tenant_id} GROUP BY 1",
+          "params": {
+            "tenant_id": { "type": "uuid" }
+          },
+          "bindings": { 
+            "tenant_id": "${var_tenant}"
+          }
+        },
+        "dataset": { 
+          "shape": "pie", 
+          "columns": { 
+            "category": { "type": "string" }, 
+            "value": { "type": "number" } 
+          } 
+        },
+        "verify": { 
+          "required_columns": ["category", "value"], 
+          "min_rows": 1 
+        },
+        "visualization": {
+          "donut": false,
+          "donutRadius": 0.5,
+          "showLabels": "auto",
+          "labelFormat": "name_percent",
+          "labelPosition": "outside",
+          "showLegend": true,
+          "legendPosition": "bottom",
+          "sortOrder": "desc",
+          "startAngle": 0,
+          "colorPalette": "classic"
+        }
+      }
+    }
+  ]
+}

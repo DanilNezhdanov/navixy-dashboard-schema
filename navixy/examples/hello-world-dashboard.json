@@ -1,0 +1,464 @@
+{
+  "id": null,
+  "uid": "hello-world",
+  "tags": [
+    "example",
+    "getting-started"
+  ],
+  "time": {
+    "to": "now",
+    "from": "now-72h"
+  },
+  "links": [],
+  "style": "dark",
+  "title": "My report",
+  "panels": [
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Messages Over Time",
+      "gridPos": {
+        "h": 13,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "options": {
+        "legend": {
+          "calcs": [],
+          "placement": "bottom",
+          "showLegend": true,
+          "displayMode": "list"
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [],
+      "x-navixy": {
+        "sql": {
+          "params": {},
+          "statement": "WITH bounds AS (\nSELECT date_trunc('hour', NOW() - INTERVAL '24 hours') AS start_ts, date_trunc('hour', NOW()) AS end_ts ), hours AS (\nSELECT generate_series( (\nSELECT start_ts\nFROM bounds), (\nSELECT end_ts\nFROM bounds), INTERVAL '1 hour' ) AS bucket ), counts AS (\nSELECT date_trunc('hour', t.device_time) AS bucket, COUNT(*) AS messages, COUNT(DISTINCT t.device_id) AS unique_devices\nFROM raw_telematics_data.tracking_data_core t --\n    JOIN raw_business_data.objects o\n  ON o.device_id = t.device_id --\n  AND o.client_id = 398286 -- uncomment & set if you want a specific client\nWHERE t.device_time >= (\nSELECT start_ts\nFROM bounds)\n  AND t.device_time < (\nSELECT end_ts\nFROM bounds) + INTERVAL '1 hour'\nGROUP BY 1 )\nSELECT h.bucket AS time, COALESCE(c.messages, 0) AS messages, COALESCE(c.unique_devices, 0) AS unique_devices\nFROM hours h LEFT\n    JOIN counts c USING (bucket)\nORDER BY time;"
+        },
+        "verify": {
+          "max_rows": 1000
+        },
+        "dataset": {
+          "shape": "time_value",
+          "columns": {
+            "time": {
+              "type": "timestamptz"
+            },
+            "messages": {
+              "type": "integer"
+            },
+            "unique_devices": {
+              "type": "integer"
+            }
+          }
+        },
+        "visualization": {
+          "lineStyle": "solid",
+          "colorPalette": "modern",
+          "interpolation": "smooth",
+          "legendPosition": "top"
+        }
+      },
+      "datasource": null,
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "spanNulls": false,
+            "showPoints": "auto",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "axisPlacement": "auto",
+            "lineInterpolation": "linear"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 1,
+      "type": "kpi",
+      "title": "Sample Count",
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 13
+      },
+      "options": {
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto"
+      },
+      "targets": [],
+      "x-navixy": {
+        "sql": {
+          "params": {
+            "tenant_id": {
+              "type": "uuid"
+            }
+          },
+          "statement": "SELECT *\nFROM raw_telematics_data.tracking_data_core LIMIT 10;"
+        },
+        "verify": {
+          "max_rows": 1
+        },
+        "dataset": {
+          "shape": "kpi",
+          "columns": {
+            "value": {
+              "type": "number"
+            }
+          }
+        }
+      },
+      "datasource": null,
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "type": "barchart",
+      "title": "Sample Data by Category",
+      "gridPos": {
+        "h": 10,
+        "w": 18,
+        "x": 0,
+        "y": 13
+      },
+      "options": {
+        "valueMode": "color",
+        "displayMode": "gradient",
+        "orientation": "horizontal",
+        "showUnfilled": true
+      },
+      "targets": [],
+      "x-navixy": {
+        "sql": {
+          "params": {},
+          "statement": "SELECT o.object_label, COUNT(*) AS msgs_24h\nFROM raw_telematics_data.tracking_data_core AS t\n    JOIN raw_business_data.objects AS o\n  ON o.device_id = t.device_id\nWHERE t.device_time >= NOW() - INTERVAL '24 hours'\nGROUP BY o.client_id, o.object_label, t.device_id\nORDER BY msgs_24h DESC LIMIT 20;"
+        },
+        "verify": {
+          "max_rows": 10
+        },
+        "dataset": {
+          "shape": "category_value",
+          "columns": {}
+        },
+        "visualization": {
+          "orientation": "vertical"
+        }
+      },
+      "datasource": null,
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "viz": false,
+              "legend": false,
+              "tooltip": false
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "type": "table",
+      "title": "Messages per day",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 23
+      },
+      "options": {
+        "sortBy": [],
+        "showHeader": true
+      },
+      "targets": [],
+      "x-navixy": {
+        "sql": {
+          "params": {
+            "__to": null,
+            "__from": null
+          },
+          "statement": "SELECT TO_CHAR(date_trunc('day', t.device_time), 'Mon DD, YYYY') AS \"Date\", \n       COUNT(*) AS \"Messages\"\nFROM raw_telematics_data.tracking_data_core AS t\nWHERE t.device_time >= ${__from}\n  AND t.device_time < ${__to}\nGROUP BY 1\nORDER BY 1;"
+        },
+        "verify": {
+          "max_rows": 10
+        },
+        "dataset": {
+          "shape": "table",
+          "columns": {}
+        },
+        "visualization": {
+          "pageSize": 5
+        }
+      },
+      "datasource": null,
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 6,
+      "type": "kpi",
+      "title": "New stat",
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 18
+      },
+      "options": {
+        "textMode": "auto"
+      },
+      "x-navixy": {
+        "sql": {
+          "params": {},
+          "statement": "SELECT *\nFROM raw_telematics_data.tracking_data_core LIMIT 10;"
+        },
+        "verify": {
+          "max_rows": 1000
+        },
+        "dataset": {
+          "shape": "table",
+          "columns": {}
+        }
+      },
+      "description": ""
+    },
+    {
+      "id": 7,
+      "type": "piechart",
+      "title": "Top active devices in the last 24h",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 23
+      },
+      "options": {
+        "pieType": "donut"
+      },
+      "x-navixy": {
+        "sql": {
+          "params": {},
+          "statement": "SELECT o.object_label, COUNT(*) AS msgs_24h\nFROM raw_telematics_data.tracking_data_core AS t\n    JOIN raw_business_data.objects AS o\n  ON o.device_id = t.device_id\nWHERE t.device_time >= NOW() - INTERVAL '24 hours'\nGROUP BY o.client_id, o.object_label, t.device_id\nORDER BY msgs_24h DESC LIMIT 20;"
+        },
+        "verify": {
+          "max_rows": 1000
+        },
+        "dataset": {
+          "shape": "pie",
+          "columns": {}
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "table",
+      "title": "New table",
+      "gridPos": {
+        "h": 19,
+        "w": 24,
+        "x": 0,
+        "y": 32
+      },
+      "options": {
+        "showHeader": true
+      },
+      "x-navixy": {
+        "sql": {
+          "params": {},
+          "statement": "WITH latest AS (\nSELECT device_id, device_time, latitude, longitude, ROW_NUMBER() OVER (PARTITION BY device_id\nORDER BY device_time DESC) AS rn\nFROM raw_telematics_data.tracking_data_core )\nSELECT device_id AS \"Device ID\", latitude::float / 10000000 AS \"Latitude\", longitude::float / 10000000 AS \"Longitude\", TO_CHAR(device_time, 'Mon DD, YYYY HH12:MI AM') AS \"Last Updated\"\nFROM latest\nWHERE rn = 1\nORDER BY device_id LIMIT 100;"
+        },
+        "verify": {
+          "max_rows": 3
+        },
+        "dataset": {
+          "shape": "table",
+          "columns": {}
+        },
+        "visualization": {
+          "pageSize": 5,
+          "sortable": true,
+          "showHeader": true,
+          "showTotals": false,
+          "rowHighlighting": "hover"
+        }
+      }
+    }
+  ],
+  "refresh": "1m",
+  "version": 1,
+  "editable": true,
+  "timezone": "browser",
+  "x-navixy": {
+    "execution": {
+      "dialect": "postgresql",
+      "endpoint": "/api/v1/sql/run",
+      "max_rows": 1000,
+      "read_only": true,
+      "timeout_ms": 5000,
+      "allowed_schemas": [
+        "demo_data"
+      ]
+    },
+    "parameters": {
+      "bindings": {
+        "to": "${__to}",
+        "from": "${__from}",
+        "tenant_id": "${var_tenant}"
+      }
+    },
+    "schemaVersion": "1.0.0"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "var_tenant",
+        "type": "constant",
+        "label": "Tenant",
+        "query": "demo-tenant-id",
+        "current": {
+          "text": "Demo Tenant",
+          "value": "demo-tenant-id"
+        },
+        "options": [
+          {
+            "text": "Demo Tenant",
+            "value": "demo-tenant-id",
+            "selected": true
+          }
+        ]
+      }
+    ],
+    "enable": true
+  },
+  "timepicker": {
+    "now": true,
+    "enable": true,
+    "hidden": false,
+    "collapse": false,
+    "time_options": [
+      "5m",
+      "15m",
+      "1h",
+      "6h",
+      "12h",
+      "24h"
+    ],
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h"
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "hide": true,
+        "name": "Annotations & Alerts",
+        "type": "dashboard",
+        "enable": true,
+        "target": {
+          "tags": [],
+          "type": "dashboard",
+          "limit": 100,
+          "matchAny": false
+        },
+        "builtIn": 1,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "datasource": {
+          "uid": "-- Dashboard --",
+          "type": "dashboard"
+        }
+      }
+    ]
+  },
+  "description": "Simple getting started example dashboard",
+  "graphTooltip": 1,
+  "schemaVersion": 38
+}

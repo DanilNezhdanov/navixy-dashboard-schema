@@ -1,0 +1,509 @@
+{
+  "id": null,
+  "title": "Asset Utilization & Idling Dashboard",
+  "uid": "asset-utilization-params",
+  "description": "Example dashboard demonstrating Dashboard Parameters with x-navixy.params extension. Shows how to use typed parameters with defaults, validation, and SQL parameter binding.",
+  "tags": ["example", "parameters", "telematics", "utilization"],
+  "style": "dark",
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 2,
+  "time": { "from": "now-7d/d", "to": "now" },
+  "refresh": "30s",
+  "timepicker": {
+    "collapse": false,
+    "enable": true,
+    "hidden": false,
+    "now": true,
+    "refresh_intervals": ["5s", "10s", "30s", "1m", "5m", "15m", "30m", "1h"],
+    "quickRanges": [
+      { "from": "now-24h",  "to": "now", "display": "Last 24 hours" },
+      { "from": "now-7d/d", "to": "now", "display": "Last 7 days" },
+      { "from": "now-30d/d", "to": "now", "display": "Last 30 days" },
+      { "from": "now-90d/d", "to": "now", "display": "Last 90 days" }
+    ]
+  },
+  "schemaVersion": 38,
+  "version": 1,
+  "templating": {
+    "enable": false,
+    "list": []
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "name": "Annotations & Alerts",
+        "type": "dashboard",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "datasource": {
+          "type": "dashboard",
+          "uid": "-- Dashboard --"
+        },
+        "target": {
+          "type": "dashboard",
+          "tags": [],
+          "limit": 100,
+          "matchAny": false
+        }
+      }
+    ]
+  },
+  "links": [],
+  "x-navixy": {
+    "version": "1.0",
+    "params": [
+      {
+        "name": "from",
+        "type": "time",
+        "label": "From",
+        "description": "Start of the time range",
+        "default": "now-7d/d",
+        "required": true,
+        "order": 1
+      },
+      {
+        "name": "to",
+        "type": "time",
+        "label": "To",
+        "description": "End of the time range",
+        "default": "now",
+        "required": true,
+        "order": 2
+      },
+      {
+        "name": "client_id",
+        "type": "number",
+        "label": "Client ID",
+        "description": "Filter by specific client (leave empty for all clients)",
+        "default": null,
+        "required": false,
+        "placeholder": "398286",
+        "min": 1,
+        "order": 3
+      },
+      {
+        "name": "move_kph",
+        "type": "number",
+        "label": "Move ≥ kph",
+        "description": "Minimum speed (km/h) to be considered 'moving'",
+        "default": 50,
+        "required": false,
+        "min": 0,
+        "max": 200,
+        "step": 5,
+        "order": 4
+      },
+      {
+        "name": "idle_kph",
+        "type": "number",
+        "label": "Idle ≤ kph",
+        "description": "Maximum speed (km/h) to be considered 'idle'",
+        "default": 1,
+        "required": false,
+        "min": 0,
+        "max": 50,
+        "step": 1,
+        "order": 5
+      },
+      {
+        "name": "status",
+        "type": "select",
+        "label": "Status Filter",
+        "description": "Filter vehicles by status",
+        "default": "all",
+        "required": false,
+        "options": [
+          { "value": "all", "label": "All Statuses" },
+          { "value": "active", "label": "Active" },
+          { "value": "idle", "label": "Idle" },
+          { "value": "parked", "label": "Parked" }
+        ],
+        "order": 6
+      },
+      {
+        "name": "min_distance_km",
+        "type": "number",
+        "label": "Min Distance (km)",
+        "description": "Minimum distance threshold for filtering",
+        "default": 0,
+        "required": false,
+        "min": 0,
+        "max": 10000,
+        "step": 10,
+        "order": 7
+      }
+    ],
+    "execution": {
+      "endpoint": "/api/v1/sql/run",
+      "dialect": "postgresql",
+      "timeout_ms": 10000,
+      "max_rows": 10000,
+      "read_only": true,
+      "allowed_schemas": ["raw_telematics_data", "raw_business_data"]
+    }
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Total Distance (km)",
+      "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
+      "datasource": null,
+      "targets": [],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "value": null, "color": "blue" }
+            ]
+          },
+          "unit": "km",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "graphMode": "none",
+        "colorMode": "value",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto"
+      },
+      "x-navixy": {
+        "sql": {
+          "statement": "SELECT COALESCE(SUM(t.odom_delta_km), 0)::numeric AS value FROM raw_telematics_data.tracking_data_core t JOIN raw_business_data.objects o ON o.device_id = t.device_id WHERE (${client_id} IS NULL OR o.client_id = ${client_id}) AND t.device_time >= ${__from} AND t.device_time < ${__to} AND t.odom_delta_km >= ${min_distance_km}",
+          "params": {
+            "client_id": { "type": "numeric" },
+            "from": { "type": "timestamptz" },
+            "to": { "type": "timestamptz" },
+            "min_distance_km": { "type": "numeric" }
+          }
+        },
+        "dataset": {
+          "shape": "kpi",
+          "columns": {
+            "value": { "type": "number" }
+          }
+        },
+        "verify": {
+          "required_columns": ["value"],
+          "min_rows": 1,
+          "max_rows": 1
+        },
+        "visualization": {
+          "displayMode": "value",
+          "valueFormat": "short",
+          "unit": "km",
+          "decimals": 2,
+          "colorMode": "threshold",
+          "thresholds": [
+            { "value": null, "color": "blue" }
+          ],
+          "size": "normal"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Moving Vehicles",
+      "gridPos": { "x": 4, "y": 0, "w": 4, "h": 4 },
+      "datasource": null,
+      "targets": [],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "value": null, "color": "green" }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "graphMode": "none",
+        "colorMode": "value",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto"
+      },
+      "x-navixy": {
+        "sql": {
+          "statement": "SELECT COUNT(DISTINCT o.object_id)::int AS value FROM raw_telematics_data.tracking_data_core t JOIN raw_business_data.objects o ON o.device_id = t.device_id WHERE (${client_id} IS NULL OR o.client_id = ${client_id}) AND t.device_time >= ${__from} AND t.device_time < ${__to} AND t.speed_kph >= ${move_kph} AND (${status} = 'all' OR o.status = ${status})",
+          "params": {
+            "client_id": { "type": "numeric" },
+            "from": { "type": "timestamptz" },
+            "to": { "type": "timestamptz" },
+            "move_kph": { "type": "numeric" },
+            "status": { "type": "text" }
+          }
+        },
+        "dataset": {
+          "shape": "kpi",
+          "columns": {
+            "value": { "type": "number" }
+          }
+        },
+        "verify": {
+          "required_columns": ["value"],
+          "min_rows": 1,
+          "max_rows": 1
+        },
+        "visualization": {
+          "displayMode": "value",
+          "valueFormat": "short",
+          "unit": "",
+          "decimals": 0,
+          "colorMode": "threshold",
+          "thresholds": [
+            { "value": null, "color": "green" }
+          ],
+          "size": "normal"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Idle Vehicles",
+      "gridPos": { "x": 8, "y": 0, "w": 4, "h": 4 },
+      "datasource": null,
+      "targets": [],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "value": null, "color": "yellow" }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "graphMode": "none",
+        "colorMode": "value",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto"
+      },
+      "x-navixy": {
+        "sql": {
+          "statement": "SELECT COUNT(DISTINCT o.object_id)::int AS value FROM raw_telematics_data.tracking_data_core t JOIN raw_business_data.objects o ON o.device_id = t.device_id WHERE (${client_id} IS NULL OR o.client_id = ${client_id}) AND t.device_time >= ${__from} AND t.device_time < ${__to} AND t.speed_kph <= ${idle_kph} AND (${status} = 'all' OR o.status = ${status})",
+          "params": {
+            "client_id": { "type": "numeric" },
+            "from": { "type": "timestamptz" },
+            "to": { "type": "timestamptz" },
+            "idle_kph": { "type": "numeric" },
+            "status": { "type": "text" }
+          }
+        },
+        "dataset": {
+          "shape": "kpi",
+          "columns": {
+            "value": { "type": "number" }
+          }
+        },
+        "verify": {
+          "required_columns": ["value"],
+          "min_rows": 1,
+          "max_rows": 1
+        },
+        "visualization": {
+          "displayMode": "value",
+          "valueFormat": "short",
+          "unit": "",
+          "decimals": 0,
+          "colorMode": "threshold",
+          "thresholds": [
+            { "value": null, "color": "green" }
+          ],
+          "size": "normal"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": "table",
+      "title": "Top Vehicles by Distance",
+      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 10 },
+      "datasource": null,
+      "targets": [],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "value": null, "color": "green" }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Distance (km)"
+          }
+        ]
+      },
+      "x-navixy": {
+        "sql": {
+          "statement": "SELECT o.object_id, o.object_name, SUM(t.odom_delta_km)::numeric AS distance_km, COUNT(*)::int AS data_points FROM raw_telematics_data.tracking_data_core t JOIN raw_business_data.objects o ON o.device_id = t.device_id WHERE (${client_id} IS NULL OR o.client_id = ${client_id}) AND t.device_time >= ${__from} AND t.device_time < ${__to} AND t.speed_kph >= ${move_kph} AND t.odom_delta_km >= ${min_distance_km} AND (${status} = 'all' OR o.status = ${status}) GROUP BY o.object_id, o.object_name ORDER BY distance_km DESC LIMIT 50",
+          "params": {
+            "client_id": { "type": "numeric" },
+            "from": { "type": "timestamptz" },
+            "to": { "type": "timestamptz" },
+            "move_kph": { "type": "numeric" },
+            "min_distance_km": { "type": "numeric" },
+            "status": { "type": "text" }
+          }
+        },
+        "dataset": {
+          "shape": "table",
+          "columns": {
+            "object_id": { "type": "string" },
+            "object_name": { "type": "string" },
+            "distance_km": { "type": "number" },
+            "data_points": { "type": "number" }
+          }
+        },
+        "verify": {
+          "required_columns": ["object_id", "object_name", "distance_km", "data_points"]
+        },
+        "visualization": {
+          "showHeader": true,
+          "sortable": true,
+          "pageSize": 25,
+          "showPagination": true,
+          "columnWidth": "auto",
+          "rowHighlighting": "alternating",
+          "showTotals": true,
+          "totalsRow": "bottom"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Distance Over Time",
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 10 },
+      "datasource": null,
+      "targets": [],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "lineWidth": 2,
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "spanNulls": false,
+            "insertNulls": false,
+            "showPoints": "auto",
+            "pointSize": 5,
+            "pointSymbol": "circle",
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "value": null, "color": "green" }
+            ]
+          },
+          "unit": "km"
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "x-navixy": {
+        "sql": {
+          "statement": "SELECT DATE_TRUNC('hour', t.device_time) AS time, SUM(t.odom_delta_km)::numeric AS distance_km FROM raw_telematics_data.tracking_data_core t JOIN raw_business_data.objects o ON o.device_id = t.device_id WHERE (${client_id} IS NULL OR o.client_id = ${client_id}) AND t.device_time >= ${__from} AND t.device_time < ${__to} AND t.speed_kph >= ${move_kph} AND t.odom_delta_km >= ${min_distance_km} AND (${status} = 'all' OR o.status = ${status}) GROUP BY 1 ORDER BY 1",
+          "params": {
+            "client_id": { "type": "numeric" },
+            "from": { "type": "timestamptz" },
+            "to": { "type": "timestamptz" },
+            "move_kph": { "type": "numeric" },
+            "min_distance_km": { "type": "numeric" },
+            "status": { "type": "text" }
+          }
+        },
+        "dataset": {
+          "shape": "time_value",
+          "columns": {
+            "time": { "type": "timestamp" },
+            "distance_km": { "type": "number" }
+          }
+        },
+        "verify": {
+          "required_columns": ["time", "distance_km"],
+          "min_rows": 1
+        },
+        "visualization": {
+          "lineStyle": "solid",
+          "lineWidth": 2,
+          "showPoints": "auto",
+          "pointSize": 4,
+          "interpolation": "linear",
+          "fillArea": "below",
+          "showGrid": true,
+          "showLegend": false,
+          "legendPosition": "bottom",
+          "colorPalette": "classic"
+        }
+      }
+    }
+  ]
+}
+

@@ -1,0 +1,822 @@
+{
+  "$id": "https://navixy.com/schemas/navixy-dashboard.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Navixy Dashboard Schema",
+  "description": "JSON Schema for Navixy dashboard format. Extends standard dashboard JSON model with x-navixy extensions.",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": ["number", "null"],
+      "description": "Numeric unique identifier for the dashboard (assigned by the database upon save). It is null for new/unsaved dashboards."
+    },
+    "uid": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 40,
+      "description": "String unique identifier (8–40 characters) that can be set for the dashboard. This is used to uniquely identify the dashboard in URLs and APIs."
+    },
+    "title": {
+      "type": "string",
+      "description": "The name/title of the dashboard."
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional. A text description of the dashboard. This is stored in the JSON (and accessible via API) but not prominently shown in the UI."
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Optional. Array of tag strings associated with the dashboard (for organizational purposes)."
+    },
+    "style": {
+      "type": "string",
+      "enum": ["dark", "light"],
+      "description": "Optional. Theme of the dashboard, either \"dark\" or \"light\" (affects panel background and text colors)."
+    },
+    "timezone": {
+      "type": "string",
+      "description": "Optional. Time zone for this dashboard. Usually \"browser\" (use viewer's local time) or \"utc\", or an IANA timezone ID."
+    },
+    "editable": {
+      "type": "boolean",
+      "description": "Optional. Boolean indicating if the dashboard can be edited (controls UI lock/unlock). Defaults to true."
+    },
+    "graphTooltip": {
+      "type": "integer",
+      "enum": [0, 1, 2],
+      "description": "Optional. Sets the behavior of tooltips and crosshair on graphs: 0 = no shared tooltip, 1 = shared crosshair, 2 = shared crosshair and shared tooltip across panels."
+    },
+    "time": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "type": "string",
+          "description": "Start of the range (e.g. \"now-6h\" for \"now minus 6 hours\")"
+        },
+        "to": {
+          "type": "string",
+          "description": "End of the range (e.g. \"now\" for the current time)"
+        }
+      },
+      "required": ["from", "to"],
+      "description": "The time range for the dashboard. It's an object with \"from\" and \"to\" properties defining the default time range."
+    },
+    "refresh": {
+      "type": ["string", "null"],
+      "description": "Optional. Default auto-refresh interval for the dashboard (e.g. \"5s\", \"1m\", etc.). Can be empty or omitted if no auto-refresh is set."
+    },
+    "timepicker": {
+      "type": "object",
+      "properties": {
+        "collapse": {
+          "type": "boolean",
+          "description": "Boolean, whether the time picker is in a collapsed (dropdown) state by default."
+        },
+        "enable": {
+          "type": "boolean",
+          "description": "Boolean, whether the time picker is enabled/shown (usually true)."
+        },
+        "hidden": {
+          "type": "boolean",
+          "description": "Boolean, if true, the time picker UI is hidden."
+        },
+        "now": {
+          "type": "boolean",
+          "description": "Boolean, whether \"Now\" is a valid option for time range selection (usually true)."
+        },
+        "nowDelay": {
+          "type": "string",
+          "description": "String, a delay to apply to \"now\" (e.g. \"1m\", \"5m\"). This effectively shifts what \"now\" means, to avoid null data from indexing delays."
+        },
+        "refresh_intervals": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Array of strings for refresh intervals to display in the UI's refresh dropdown."
+        },
+        "time_options": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Array of strings for quick range options (e.g., \"Last 5m\", \"Last 15m\", etc.)."
+        }
+      },
+      "description": "Optional. An object describing time picker options."
+    },
+    "templating": {
+      "type": "object",
+      "properties": {
+        "enable": {
+          "type": "boolean",
+          "description": "Boolean indicating if templating variables are enabled."
+        },
+        "list": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "The variable name (unique identifier) used in queries (e.g. $env)."
+              },
+              "label": {
+                "type": "string",
+                "description": "Optional. Human-friendly label for the variable (shown in the dropdown)."
+              },
+              "type": {
+                "type": "string",
+                "enum": ["query", "interval", "custom", "constant", "datasource", "textbox"],
+                "description": "Type of variable, such as \"query\", \"interval\", \"custom\", \"constant\", etc."
+              },
+              "query": {
+                "type": "string",
+                "description": "For query variables, the query string used to fetch options (syntax depends on data source)."
+              },
+              "datasource": {
+                "type": ["object", "string", "null"],
+                "description": "The data source used for the variable's query. Often null means use the default data source."
+              },
+              "options": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "text": { "type": "string" },
+                    "value": {},
+                    "selected": { "type": "boolean" }
+                  }
+                },
+                "description": "Array of value options (each option is an object with text and value, and a selected boolean)."
+              },
+              "current": {
+                "type": "object",
+                "properties": {
+                  "text": { "type": "string" },
+                  "value": {},
+                  "tags": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  }
+                },
+                "description": "An object representing the current selected value(s) for the variable."
+              },
+              "includeAll": {
+                "type": "boolean",
+                "description": "Boolean indicating if an \"All\" option is available for this variable."
+              },
+              "allValue": {
+                "type": "string",
+                "description": "Optional. If \"All\" is enabled, this can define what value to use when \"All\" is selected."
+              },
+              "allFormat": {
+                "type": "string",
+                "enum": ["wildcard", "regex", "glob", "pipe"],
+                "description": "Format used when the \"All\" option is selected."
+              },
+              "multi": {
+                "type": "boolean",
+                "description": "Boolean indicating if multiple values can be selected (multi-select)."
+              },
+              "multiFormat": {
+                "type": "string",
+                "description": "Format to use when multiple values are selected (e.g., how to join them in queries: glob, wildcard, regex)."
+              },
+              "regex": {
+                "type": "string",
+                "description": "Optional. For query variables, a regex pattern to filter or capture part of the results from the query."
+              },
+              "refresh": {
+                "type": ["integer", "boolean"],
+                "description": "When to update the variable options: 0 or false = never refresh automatically, 1 = refresh on time range change, 2 = refresh on dashboard load."
+              },
+              "description": {
+                "type": "string",
+                "description": "Optional. A description for the variable (usually shown as info on hover in the UI)."
+              }
+            },
+            "required": ["type", "name"]
+          },
+          "description": "Array of variable definition objects."
+        }
+      },
+      "description": "Optional. An object describing dashboard variables (templating)."
+    },
+    "annotations": {
+      "type": "object",
+      "properties": {
+        "list": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "builtIn": {
+                "type": "integer",
+                "description": "If present and non-zero, indicates a built-in annotation source."
+              },
+              "name": {
+                "type": "string",
+                "description": "Name of the annotation query entry (as it appears in the dashboard UI settings)."
+              },
+              "datasource": {
+                "type": ["object", "string"],
+                "description": "Data source from which to pull annotations."
+              },
+              "enable": {
+                "type": "boolean",
+                "description": "Boolean to enable/disable this annotation query."
+              },
+              "hide": {
+                "type": "boolean",
+                "description": "Boolean indicating if the annotations from this source should be hidden by default."
+              },
+              "iconColor": {
+                "type": "string",
+                "description": "Color for the annotation marker (vertical line icon color) in RGBA or hex format."
+              },
+              "type": {
+                "type": "string",
+                "description": "Type of annotation query. For the built-in it is \"dashboard\"."
+              },
+              "target": {
+                "type": "object",
+                "description": "Optional, for certain types. An object defining the query for annotations when using tags or an external source."
+              }
+            }
+          },
+          "description": "Array of annotation definition objects."
+        }
+      },
+      "description": "Optional. An object describing annotation queries configured for this dashboard."
+    },
+    "panels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "description": "Numeric panel ID, unique within the dashboard. This is used for referencing panels (e.g. in annotations)."
+          },
+          "type": {
+            "type": "string",
+            "description": "Panel type (e.g. \"graph\", \"timeseries\", \"gauge\", \"table\", \"text\", etc.). This determines what kind of visualization and options the panel will have."
+          },
+          "title": {
+            "type": "string",
+            "description": "Panel title, displayed at the top of the panel."
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional. Panel description, shown on hover of info icon in the UI."
+          },
+          "gridPos": {
+            "type": "object",
+            "properties": {
+              "x": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 23,
+                "description": "Column position (0–23, since dashboard width is 24 columns)."
+              },
+              "y": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Row position (in grid units)."
+              },
+              "w": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 24,
+                "description": "Width in grid columns (1–24)."
+              },
+              "h": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Height in grid units (each unit ~30px)."
+              }
+            },
+            "required": ["x", "y", "w", "h"],
+            "description": "An object specifying the panel's size and position in the dashboard grid."
+          },
+          "datasource": {
+            "type": ["object", "string", "null"],
+            "description": "The data source for the panel's queries. In newer versions this is often an object with {\"type\": \"<type>\", \"uid\": \"<datasource UID>\"}, or it can be set to null to use the default data source."
+          },
+          "targets": {
+            "type": "array",
+            "description": "An array of query definitions for this panel. Each target defines a query to the datasource."
+          },
+          "fieldConfig": {
+            "type": "object",
+            "description": "An object defining per-field display settings and overrides. This contains defaults and overrides."
+          },
+          "options": {
+            "type": "object",
+            "description": "Panel-type-specific settings. This is an object whose contents depend on the panel type."
+          },
+          "pluginVersion": {
+            "type": "string",
+            "description": "Version of the panel plugin in use (e.g. \"8.5.9\" or \"10.0.2\")."
+          },
+          "transparent": {
+            "type": "boolean",
+            "description": "Optional. Boolean indicating if the panel has a transparent background (so the dashboard background shows through)."
+          },
+          "maxDataPoints": {
+            "type": "integer",
+            "description": "Optional. Maximum data points the panel should plot. The dashboard system might down-sample data for high-resolution displays based on this."
+          },
+          "transformations": {
+            "type": "array",
+            "description": "Optional. An array of transformations applied to the panel's data."
+          },
+          "x-navixy": {
+            "type": "object",
+            "properties": {
+              "sql": {
+                "type": "object",
+                "properties": {
+                  "dialect": {
+                    "enum": ["postgresql"],
+                    "description": "SQL dialect"
+                  },
+                  "statement": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "SQL query with named parameters"
+                  },
+                  "params": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "enum": ["uuid", "int", "numeric", "text", "timestamptz", "bool", "json", "text[]", "uuid[]"],
+                          "description": "Parameter type"
+                        },
+                        "default": {},
+                        "min": { "type": "number" },
+                        "max": { "type": "number" }
+                      },
+                      "required": ["type"]
+                    },
+                    "description": "Parameter type definitions and constraints"
+                  },
+                  "bindings": {
+                    "type": "object",
+                    "additionalProperties": { "type": "string" },
+                    "description": "Variable-to-parameter mappings"
+                  },
+                  "limits": {
+                    "type": "object",
+                    "properties": {
+                      "timeout_ms": { "type": "integer", "minimum": 100 },
+                      "max_rows": { "type": "integer", "minimum": 1 }
+                    },
+                    "description": "Panel-specific execution limits"
+                  },
+                  "read_only": {
+                    "type": "boolean",
+                    "description": "Enforce read-only queries"
+                  }
+                },
+                "required": ["statement"]
+              },
+              "dataset": {
+                "type": "object",
+                "properties": {
+                  "shape": {
+                    "enum": ["category_value", "time_value", "table", "kpi", "pie"],
+                    "description": "Expected data structure type"
+                  },
+                  "columns": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "enum": ["string", "number", "boolean", "timestamp", "json"],
+                          "description": "Column data type"
+                        }
+                      },
+                      "required": ["type"]
+                    },
+                    "description": "Column type definitions"
+                  }
+                },
+                "required": ["shape", "columns"]
+              },
+              "verify": {
+                "type": "object",
+                "properties": {
+                  "required_columns": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Mandatory column names"
+                  },
+                  "types": {
+                    "type": "object",
+                    "additionalProperties": { "type": "string" },
+                    "description": "Expected column types"
+                  },
+                  "min_rows": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Minimum row count"
+                  },
+                  "max_rows": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Maximum row count"
+                  },
+                  "unique": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Columns that must contain unique values"
+                  },
+                  "assertions": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "op": { "type": "string" },
+                        "left": { "type": "string" },
+                        "right": { "type": "string" }
+                      },
+                      "required": ["op", "left", "right"]
+                    },
+                    "description": "Advanced validation expressions"
+                  }
+                },
+                "description": "Data validation rules"
+              },
+              "transform": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "op": {
+                      "enum": ["sort", "limit", "rename", "calc", "pivot", "unpivot"],
+                      "description": "Transform operation"
+                    },
+                    "by": { "type": "string" },
+                    "dir": { "enum": ["asc", "desc"] },
+                    "n": { "type": "integer" },
+                    "map": { "type": "object" },
+                    "expr": { "type": "string" }
+                  },
+                  "required": ["op"]
+                },
+                "description": "Post-query data transformations"
+              },
+              "on_empty": {
+                "enum": ["show_placeholder", "show_message", "hide"],
+                "description": "Behavior when no data is returned"
+              },
+              "on_error": {
+                "enum": ["show_message", "hide", "show_placeholder"],
+                "description": "Behavior when an error occurs"
+              },
+              "visualization": {
+                "type": "object",
+                "description": "Optional visualization options for controlling how data is rendered. These are suggestions for BI renderers and are not mandatory.",
+                "properties": {
+                  "orientation": {
+                    "enum": ["horizontal", "vertical"],
+                    "description": "Bar chart orientation"
+                  },
+                  "stacking": {
+                    "enum": ["none", "stacked", "percent"],
+                    "description": "Bar chart stacking mode"
+                  },
+                  "showValues": {
+                    "type": "boolean",
+                    "description": "Show value labels on bars"
+                  },
+                  "sortOrder": {
+                    "enum": ["asc", "desc", "none"],
+                    "description": "Sort order for bars/pie segments"
+                  },
+                  "barSpacing": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "description": "Spacing between bars (0-1)"
+                  },
+                  "lineStyle": {
+                    "enum": ["solid", "dashed", "dotted"],
+                    "description": "Line chart line style"
+                  },
+                  "lineWidth": {
+                    "type": "number",
+                    "minimum": 1,
+                    "description": "Line chart line width in pixels"
+                  },
+                  "showPoints": {
+                    "enum": ["always", "auto", "never"],
+                    "description": "When to show data points on line chart"
+                  },
+                  "pointSize": {
+                    "type": "number",
+                    "minimum": 1,
+                    "description": "Size of data points in pixels"
+                  },
+                  "interpolation": {
+                    "enum": ["linear", "step", "smooth"],
+                    "description": "Line chart interpolation method"
+                  },
+                  "fillArea": {
+                    "enum": ["none", "below", "above"],
+                    "description": "Fill area under/over line"
+                  },
+                  "showGrid": {
+                    "type": "boolean",
+                    "description": "Show grid lines"
+                  },
+                  "donut": {
+                    "type": "boolean",
+                    "description": "Render pie chart as donut"
+                  },
+                  "donutRadius": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "description": "Pie chart donut inner radius ratio"
+                  },
+                  "showLabels": {
+                    "enum": ["always", "auto", "never"],
+                    "description": "When to show labels on pie chart"
+                  },
+                  "labelFormat": {
+                    "enum": ["name", "value", "percent", "name_value", "name_percent"],
+                    "description": "Pie chart label content format"
+                  },
+                  "labelPosition": {
+                    "enum": ["inside", "outside"],
+                    "description": "Pie chart label position"
+                  },
+                  "startAngle": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 360,
+                    "description": "Pie chart starting angle in degrees"
+                  },
+                  "displayMode": {
+                    "enum": ["value", "value_delta", "value_trend", "value_delta_trend"],
+                    "description": "KPI card display mode"
+                  },
+                  "valueFormat": {
+                    "enum": ["short", "long", "currency", "percent", "scientific"],
+                    "description": "KPI card number format"
+                  },
+                  "unit": {
+                    "type": "string",
+                    "description": "KPI card unit suffix"
+                  },
+                  "decimals": {
+                    "type": "number",
+                    "minimum": 0,
+                    "description": "KPI card decimal places"
+                  },
+                  "colorMode": {
+                    "enum": ["value", "threshold", "background", "none"],
+                    "description": "KPI card color application mode"
+                  },
+                  "showSparkline": {
+                    "type": "boolean",
+                    "description": "Show mini trend line on KPI card"
+                  },
+                  "thresholds": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": ["number", "null"]
+                        },
+                        "color": {
+                          "type": "string"
+                        }
+                      },
+                      "required": ["value", "color"]
+                    },
+                    "description": "KPI card color thresholds"
+                  },
+                  "size": {
+                    "enum": ["compact", "normal", "large"],
+                    "description": "KPI card size"
+                  },
+                  "showHeader": {
+                    "type": "boolean",
+                    "description": "Show table column headers"
+                  },
+                  "sortable": {
+                    "type": "boolean",
+                    "description": "Enable table column sorting"
+                  },
+                  "pageSize": {
+                    "type": "number",
+                    "minimum": 1,
+                    "description": "Table rows per page"
+                  },
+                  "showPagination": {
+                    "type": "boolean",
+                    "description": "Show table pagination controls"
+                  },
+                  "columnWidth": {
+                    "enum": ["auto", "equal", "fit"],
+                    "description": "Table column width strategy"
+                  },
+                  "rowHighlighting": {
+                    "enum": ["none", "alternating", "hover", "both"],
+                    "description": "Table row highlighting mode"
+                  },
+                  "showTotals": {
+                    "type": "boolean",
+                    "description": "Show table totals row"
+                  },
+                  "totalsRow": {
+                    "enum": ["top", "bottom"],
+                    "description": "Table totals row position"
+                  },
+                  "iconColor": {
+                    "type": "string",
+                    "description": "Annotation marker color (RGBA or hex)"
+                  },
+                  "iconShape": {
+                    "enum": ["circle", "square", "diamond", "triangle"],
+                    "description": "Annotation marker shape"
+                  },
+                  "showText": {
+                    "type": "boolean",
+                    "description": "Show annotation text"
+                  },
+                  "textPosition": {
+                    "enum": ["left", "right", "top", "bottom"],
+                    "description": "Annotation text position"
+                  },
+                  "colorPalette": {
+                    "enum": ["classic", "modern", "pastel", "vibrant"],
+                    "description": "Color scheme for charts"
+                  },
+                  "showLegend": {
+                    "type": "boolean",
+                    "description": "Show legend"
+                  },
+                  "legendPosition": {
+                    "enum": ["top", "bottom", "left", "right"],
+                    "description": "Legend placement"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "required": ["sql", "dataset"],
+            "description": "Navixy-specific panel extensions for SQL execution and dataset validation."
+          }
+        },
+        "required": ["type", "title"]
+      },
+      "description": "Array of panel objects that make up the dashboard."
+    },
+    "links": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "The text to display for the link."
+          },
+          "type": {
+            "type": "string",
+            "enum": ["dashboards", "link"],
+            "description": "The link type: \"dashboards\" or \"link\"."
+          },
+          "url": {
+            "type": "string",
+            "description": "Required if type is \"link\". The URL to open when the link is clicked."
+          },
+          "tags": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "For type: \"dashboards\". An array of tag names to filter which dashboards are shown in the drop-down."
+          },
+          "asDropdown": {
+            "type": "boolean",
+            "description": "Boolean, used only for type: \"dashboards\". If true, multiple dashboards matching the tags will appear as a dropdown menu."
+          },
+          "icon": {
+            "type": "string",
+            "description": "Name of an icon to display with the link (e.g. external link, bolt, etc.)."
+          },
+          "tooltip": {
+            "type": "string",
+            "description": "Hover text for the link (displayed when user hovers over the link)."
+          },
+          "targetBlank": {
+            "type": "boolean",
+            "description": "Boolean, if true the link opens in a new tab/window (i.e. target=\"_blank\")."
+          },
+          "includeVars": {
+            "type": "boolean",
+            "description": "Boolean, if true, the dashboard will include the current dashboard's variable values as URL parameters when navigating via this link."
+          },
+          "keepTime": {
+            "type": "boolean",
+            "description": "Boolean, if true, the current time range is included in the link (as URL params) so that the target page sees the same time window."
+          }
+        },
+        "required": ["title", "type"]
+      },
+      "description": "Optional. Array of dashboard link objects. These are external or internal links shown on the dashboard."
+    },
+    "schemaVersion": {
+      "type": "integer",
+      "description": "Optional. Integer schema version of the dashboard JSON. This increments when the dashboard JSON format changes (e.g. new release with a new field). Common values: 16, 30, 36, 38 for recent versions."
+    },
+    "version": {
+      "type": "integer",
+      "description": "Optional. Integer revision of the dashboard, incremented each time the dashboard is saved/updated by a user."
+    },
+    "gnetId": {
+      "type": ["number", "null"],
+      "description": "Optional. ID of the dashboard on a community dashboard site if it was imported from there. It is null if the dashboard isn't sourced from a community site."
+    },
+    "iteration": {
+      "type": ["number", "null"],
+      "description": "Optional. An internal revision identifier, often a timestamp value, used internally by the dashboard system."
+    },
+    "fiscalYearStartMonth": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 11,
+      "description": "Optional. The month (0–11) that the fiscal year starts on, used for custom time ranges (e.g. week numbering). 0 = January, 11 = December."
+    },
+    "liveNow": {
+      "type": "boolean",
+      "description": "Optional. Boolean indicating if the dashboard is currently in \"live\" mode (real-time streaming data)."
+    },
+    "x-navixy": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Semantic version of the Navixy schema"
+        },
+        "execution": {
+          "type": "object",
+          "properties": {
+            "endpoint": {
+              "type": "string",
+              "description": "SQL execution API endpoint"
+            },
+            "dialect": {
+              "enum": ["postgresql"],
+              "description": "SQL dialect"
+            },
+            "timeout_ms": {
+              "type": "integer",
+              "minimum": 100,
+              "description": "Maximum query execution time in milliseconds"
+            },
+            "max_rows": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Maximum rows returned per query"
+            },
+            "read_only": {
+              "type": "boolean",
+              "description": "Enforce read-only queries"
+            },
+            "allowed_schemas": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Whitelist of database schemas"
+            }
+          },
+          "required": ["endpoint", "dialect"]
+        },
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "bindings": {
+              "type": "object",
+              "additionalProperties": { "type": "string" },
+              "description": "Dashboard-level default parameter bindings"
+            }
+          }
+        }
+      },
+      "required": ["schemaVersion", "execution"],
+      "description": "Navixy-specific dashboard extensions for SQL execution and dataset validation."
+    }
+  },
+  "required": ["title", "time", "panels", "x-navixy"],
+  "additionalProperties": true
+}
