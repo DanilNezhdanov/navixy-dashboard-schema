@@ -82,7 +82,7 @@ Thank you for your interest in contributing to this documentation project! This 
 ### Local Development
 1. Clone the repository:
    ```bash
-   git clone https://github.com/DanilNezhdanov/navixy-dashboard-schema-v1.git
+   git clone https://github.com/DanilNezhdanov/navixy-dashboard-schema.git
    ```
 2. Create a new branch
 3. Make your changes

@@ -30,7 +30,7 @@ The repository includes extensive documentation for the **Navixy dashboard forma
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/DanilNezhdanov/navixy-dashboard-schema-v1.git
+   git clone https://github.com/DanilNezhdanov/navixy-dashboard-schema.git
    ```
 2. Review the configuration examples in `/docs/examples/`
 3. Import dashboard templates from `/docs/templates/`
