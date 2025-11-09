@@ -11,7 +11,7 @@
   },
   "links": [],
   "style": "dark",
-  "title": "My report",
+  "title": "My report Y",
   "panels": [
     {
       "id": 9,
@@ -362,6 +362,30 @@
           "showHeader": true,
           "showTotals": false,
           "rowHighlighting": "hover"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "text",
+      "title": "Text panel",
+      "gridPos": {
+        "x": 0,
+        "y": 51,
+        "w": 24,
+        "h": 4
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "This is a **text panel**. Use it for headings, notes, instructions, or links.\n- Supports Markdown\n- Great for section headers and explanations\n_You can replace this content with anything you want._"
+      },
+      "x-navixy": {
+        "sql": {
+          "statement": ""
+        },
+        "dataset": {
+          "shape": "table",
+          "columns": {}
         }
       }
     }
