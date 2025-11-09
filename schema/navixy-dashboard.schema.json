@@ -263,7 +263,7 @@
           },
           "type": {
             "type": "string",
-            "description": "Panel type (e.g. \"graph\", \"timeseries\", \"gauge\", \"table\", \"text\", etc.). This determines what kind of visualization and options the panel will have."
+            "description": "Panel type (e.g. \"graph\", \"timeseries\", \"gauge\", \"table\", \"text\", \"barchart\", \"linechart\", \"piechart\", \"kpi\", etc.). This determines what kind of visualization and options the panel will have. Text panels display static content (markdown, HTML, or code) and do not require SQL queries."
           },
           "title": {
             "type": "string",
@@ -316,7 +316,7 @@
           },
           "options": {
             "type": "object",
-            "description": "Panel-type-specific settings. This is an object whose contents depend on the panel type."
+            "description": "Panel-type-specific settings. This is an object whose contents depend on the panel type. For text panels, this includes 'mode' (markdown/html/code), 'content' (string), and optionally 'code' (object with language, showLineNumbers, showMiniMap)."
           },
           "pluginVersion": {
             "type": "string",

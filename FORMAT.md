@@ -41,7 +41,7 @@ The Navixy dashboard format extends a standard dashboard JSON model with vendor-
 - **Performance Optimization**: Query deduplication and caching
 - **Extensible Visualizations**: Support for custom panel types
 
-This format allows applications to load a single JSON file, execute user-defined SQL safely, and render various visualizations (bar charts, line charts, pie charts, KPI tiles, tables, annotations) from the returned datasets.
+This format allows applications to load a single JSON file, execute user-defined SQL safely, and render various visualizations (bar charts, line charts, pie charts, KPI tiles, tables, text panels, annotations) from the returned datasets.
 
 ## Dashboard JSON Model
 
@@ -452,7 +452,7 @@ Dashboard-level Navixy configuration:
 
 ### Panel Extensions
 
-Each panel extends the standard dashboard structure with Navixy-specific SQL execution and data validation:
+Panels that execute SQL queries extend the standard dashboard structure with Navixy-specific SQL execution and data validation. Text panels and other static content panels do not require `x-navixy` extensions and use standard panel `options` instead (see [Text Panel Options](#text-panel-options)).
 
 ```json
 {
@@ -542,6 +542,7 @@ Each visualization type expects specific data structures:
 | `piechart` | `category:string`, `value:number` | – | Values ≥ 0, normalized to 100% |
 | `kpi` | `value:number` (single row) | `delta:number`, `trend:string` | Uses first row if multiple. `delta` for change display, `trend` for direction (`"up"`, `"down"`, `"stable"`) |
 | `table` | Any columns | – | Raw rows with pagination/sorting |
+| `text` | None | – | Static content, no SQL. Supports markdown, HTML, or code display |
 | `annotation` | None | `text:string` | Static content, no SQL |
 
 ## Visualization Options
@@ -743,6 +744,55 @@ Annotations mark events on time-series charts. Configure appearance:
 - `iconShape`: `"circle"` | `"square"` | `"diamond"` | `"triangle"` - Marker shape (default: `"circle"`)
 - `showText`: `boolean` - Show annotation text (default: `true`)
 - `textPosition`: `"left"` | `"right"` | `"top"` | `"bottom"` - Text position relative to marker (default: `"right"`)
+
+### Text Panel Options
+
+Text panels display static text content, markdown, HTML, or code snippets. They do not require SQL queries and are useful for adding contextual information, instructions, links, or documentation to dashboards.
+
+```json
+{
+  "type": "text",
+  "title": "Dashboard Instructions",
+  "gridPos": { "x": 0, "y": 0, "w": 12, "h": 6 },
+  "options": {
+    "mode": "markdown",
+    "content": "# Dashboard Guide\n\nThis dashboard shows real-time fleet status.\n\n## Key Metrics\n- **Active Vehicles**: Currently tracked vehicles\n- **Events**: Recent telematics events\n\n[View Documentation](https://docs.example.com)"
+  }
+}
+```
+
+**Options:**
+- `mode`: `"markdown"` | `"html"` | `"code"` - Content rendering mode (default: `"markdown"`)
+  - `"markdown"`: Formats content as markdown with support for headers, lists, links, code blocks, etc.
+  - `"html"`: Renders content as sanitized HTML. For more direct control, HTML sanitization can be disabled via configuration.
+  - `"code"`: Renders content inside a read-only code editor with syntax highlighting
+- `content`: `string` - The text content to display. Dashboard variables in the content are expanded using `${variable_name}` syntax before rendering.
+- `code`: `object` - Additional options when `mode` is `"code"`:
+  - `language`: `string` - Programming language for syntax highlighting (e.g., `"javascript"`, `"sql"`, `"json"`, `"python"`). Defaults to `"text"` if not specified.
+  - `showLineNumbers`: `boolean` - Display line numbers in the code editor (default: `false`)
+  - `showMiniMap`: `boolean` - Display a small code outline/minimap in the code editor (default: `false`)
+
+**Use Cases:**
+- Add important links or useful annotations
+- Provide instructions or guidance on how to interpret different panels, configure settings, or take specific actions based on the displayed data
+- Announce scheduled maintenance or downtime that might impact dashboards
+- Display code snippets or configuration examples
+- Include documentation or help text directly on the dashboard
+
+**Variable Expansion:**
+Text panels support dashboard variable expansion in content. Variables are expanded before rendering:
+
+```json
+{
+  "options": {
+    "mode": "markdown",
+    "content": "Current tenant: **${var_tenant}**\n\nTime range: ${__from} to ${__to}"
+  }
+}
+```
+
+**Security Note:**
+When using HTML mode, content is sanitized by default to prevent XSS attacks. If HTML sanitization is disabled via configuration, ensure that only trusted content is displayed.
 
 ## SQL Execution API
 
@@ -991,6 +1041,50 @@ See [`fleet-status-dashboard.json`](examples/fleet-status-dashboard.json) for a 
     },
     "dataset": { "shape": "category_value", "columns": { "category": { "type": "string" }, "value": { "type": "number" } } },
     "verify": { "required_columns": ["category", "value"], "min_rows": 1, "max_rows": 1000 }
+  }
+}
+```
+
+#### Text Panel
+```json
+{
+  "type": "text",
+  "title": "Dashboard Guide",
+  "gridPos": { "x": 0, "y": 0, "w": 12, "h": 6 },
+  "options": {
+    "mode": "markdown",
+    "content": "# Fleet Status Dashboard\n\nThis dashboard provides real-time monitoring of your vehicle fleet.\n\n## Key Metrics\n- **Active Vehicles**: Number of vehicles currently being tracked\n- **Events**: Recent telematics events including speeding, harsh braking, and geofence alerts\n\n## Usage\nSelect a time range using the time picker above. Variables can be used to filter data by tenant or other criteria.\n\n[View Full Documentation](https://docs.example.com/fleet-dashboard)"
+  }
+}
+```
+
+Text panel with code mode:
+```json
+{
+  "type": "text",
+  "title": "SQL Query Example",
+  "gridPos": { "x": 0, "y": 6, "w": 12, "h": 8 },
+  "options": {
+    "mode": "code",
+    "content": "SELECT device_id, COUNT(*) as message_count\nFROM tracking_data_core\nWHERE device_time >= NOW() - INTERVAL '24 hours'\nGROUP BY device_id\nORDER BY message_count DESC\nLIMIT 10;",
+    "code": {
+      "language": "sql",
+      "showLineNumbers": true,
+      "showMiniMap": false
+    }
+  }
+}
+```
+
+Text panel with variable expansion:
+```json
+{
+  "type": "text",
+  "title": "Current Context",
+  "gridPos": { "x": 12, "y": 0, "w": 12, "h": 4 },
+  "options": {
+    "mode": "markdown",
+    "content": "**Tenant**: ${var_tenant}\n\n**Time Range**: ${__from} to ${__to}"
   }
 }
 ```
