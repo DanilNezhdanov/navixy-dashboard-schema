@@ -9,13 +9,6 @@ This directory contains practical examples of Navixy dashboards demonstrating va
 - [`fleet-status-dashboard.json`](fleet-status-dashboard.json) - Complete fleet monitoring dashboard (includes both legacy bindings and new params format)
 - [`hello-world-dashboard.json`](hello-world-dashboard.json) - Simple getting started example (includes both legacy bindings and new params format)
 
-### Panel Examples
-- [`kpi-panel-example.json`](kpi-panel-example.json) - KPI tile with single value display
-- [`barchart-panel-example.json`](barchart-panel-example.json) - Bar chart with category/value data
-- [`linechart-panel-example.json`](linechart-panel-example.json) - Time series line chart
-- [`table-panel-example.json`](table-panel-example.json) - Data table with pagination
-- [`piechart-panel-example.json`](piechart-panel-example.json) - Pie chart for categorical data
-
 ## Dashboard Parameters
 
 ### New: x-navixy.params Extension

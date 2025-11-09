@@ -32,8 +32,8 @@ The repository includes extensive documentation for the **Navixy dashboard forma
    ```bash
    git clone https://github.com/DanilNezhdanov/navixy-dashboard-schema.git
    ```
-2. Review the configuration examples in `/docs/examples/`
-3. Import dashboard templates from `/docs/templates/`
+2. Review the configuration examples in [`examples/`](examples/)
+3. Review the [Format Documentation](FORMAT.md)
 4. Customize dashboards for your specific use case
 
 ## Dashboard Design Principles
@@ -55,7 +55,7 @@ The repository includes extensive documentation for the **Navixy dashboard forma
 
 ## Configuration Examples
 
-Browse the `/docs/examples/` directory for:
+Browse the [`examples/`](examples/) directory for:
 - Infrastructure monitoring dashboards
 - Application performance monitoring
 - Business metrics visualization
@@ -98,17 +98,17 @@ The Navixy dashboard format provides a comprehensive JSON-based dashboard model 
 - **Standard JSON Model**: Well-defined dashboard structure
 
 ### Documentation Structure
-- [`navixy/README.md`](navixy/README.md) - Complete format documentation
-- [`navixy/schema/`](navixy/schema/) - JSON Schema definitions
-- [`navixy/examples/`](navixy/examples/) - Working dashboard examples
-- [`navixy/api-reference/`](navixy/api-reference/) - SQL Execution API reference
-- [`navixy/security/`](navixy/security/) - Security guidelines and best practices
+- [`FORMAT.md`](FORMAT.md) - Complete format documentation
+- [`schema/`](schema/) - JSON Schema definitions
+- [`examples/`](examples/) - Working dashboard examples
+- [`api-reference/`](api-reference/) - SQL Execution API reference
+- [`security/`](security/) - Security guidelines and best practices
 
 ### Quick Start
-1. Review the [Navixy Format Documentation](navixy/README.md)
-2. Explore the [Example Dashboards](navixy/examples/)
-3. Check the [API Reference](navixy/api-reference/README.md) for implementation details
-4. Follow [Security Best Practices](navixy/security/README.md)
+1. Review the [Navixy Format Documentation](FORMAT.md)
+2. Explore the [Example Dashboards](examples/)
+3. Check the [API Reference](api-reference/README.md) for implementation details
+4. Follow [Security Best Practices](security/README.md)
 
 ## Resources
 
