@@ -17,8 +17,14 @@ A comprehensive guide to the Navixy dashboard format that extends a standard JSO
 - [Navixy Extensions](#navixy-extensions)
   - [Dashboard-Level Extensions](#dashboard-level-extensions)
   - [Panel Extensions](#panel-extensions)
-- [Dataset Contracts](#dataset-contracts)
-- [Visualization Options](#visualization-options)
+- [Panel Types](#panel-types)
+  - [Bar Chart (`barchart`)](#bar-chart-barchart)
+  - [Line Chart (`linechart`)](#line-chart-linechart)
+  - [Pie Chart (`piechart`)](#pie-chart-piechart)
+  - [KPI Card (`kpi`)](#kpi-card-kpi)
+  - [Table (`table`)](#table-table)
+  - [Text Panel (`text`)](#text-panel-text)
+  - [Annotation (`annotation`)](#annotation-annotation)
 - [SQL Execution API](#sql-execution-api)
 - [Variable Binding](#variable-binding)
 - [Verification Rules](#verification-rules)
@@ -529,29 +535,30 @@ Panels that execute SQL queries extend the standard dashboard structure with Nav
 #### `x-navixy.visualization`
 - Optional visualization options for controlling how data is rendered
 - Type-specific options for bar charts, line charts, pie charts, KPI cards, tables, and annotations
-- See [Visualization Options](#visualization-options) section for detailed documentation
+- See [Panel Types](#panel-types) section for detailed documentation of each panel type
 
-## Dataset Contracts
+## Panel Types
 
-Each visualization type expects specific data structures:
+This section provides comprehensive documentation for each supported panel type, including dataset requirements, visualization options, and configuration examples. Each panel type can be configured with Navixy-specific extensions for SQL execution and data validation.
 
-| Visual Type | Required Columns | Optional Columns | Notes |
-|-------------|------------------|------------------|-------|
-| `barchart` | `category:string`, `value:number` | `series:string` | Grouped bars if series present |
-| `linechart` | `time:timestamp`, `value:number` | `series:string` | Time must be sortable |
-| `piechart` | `category:string`, `value:number` | – | Values ≥ 0, normalized to 100% |
-| `kpi` | `value:number` (single row) | `delta:number`, `trend:string` | Uses first row if multiple. `delta` for change display, `trend` for direction (`"up"`, `"down"`, `"stable"`) |
-| `table` | Any columns | – | Raw rows with pagination/sorting |
-| `text` | None | – | Static content, no SQL. Supports markdown, HTML, or code display |
-| `annotation` | None | `text:string` | Static content, no SQL |
+> **Note**: Visualization options in `x-navixy.visualization` are suggestions for BI renderers and are not mandatory—renderers may implement their own defaults or ignore unsupported options.
 
-## Visualization Options
+### Bar Chart (`barchart`)
 
-Each panel can include optional visualization settings in `x-navixy.visualization` to control how data is rendered. These options are suggestions for BI renderers and are not mandatory—renderers may implement their own defaults or ignore unsupported options.
+Bar charts display categorical data with rectangular bars, ideal for comparing values across different categories.
 
-### Bar Chart Options
+#### Dataset Contract
 
-Bar charts display categorical data with rectangular bars. Configure visualization behavior:
+**Required Columns:**
+- `category` (string): Category name for each bar
+- `value` (number): Numeric value for each bar
+
+**Optional Columns:**
+- `series` (string): Series name for grouped/stacked bars. When present, multiple bars are displayed per category.
+
+#### Visualization Options
+
+Configure bar chart appearance and behavior using `x-navixy.visualization`:
 
 ```json
 {
@@ -570,7 +577,7 @@ Bar charts display categorical data with rectangular bars. Configure visualizati
 }
 ```
 
-**Options:**
+**Available Options:**
 - `orientation`: `"horizontal"` | `"vertical"` - Bar direction (default: `"vertical"`)
 - `stacking`: `"none"` | `"stacked"` | `"percent"` - Stacking mode for grouped bars (default: `"none"`)
 - `showValues`: `boolean` - Display value labels on bars (default: `false`)
@@ -580,9 +587,65 @@ Bar charts display categorical data with rectangular bars. Configure visualizati
 - `showLegend`: `boolean` - Show legend when `series` column present (default: `true`)
 - `legendPosition`: `"top"` | `"bottom"` | `"left"` | `"right"` - Legend placement (default: `"bottom"`)
 
-### Line Chart Options
+#### Example Configuration
 
-Line charts display time-series data with connected points. Configure line appearance and behavior:
+```json
+{
+  "type": "barchart",
+  "title": "Events by Type",
+  "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+  "x-navixy": {
+    "sql": {
+      "statement": "SELECT event_type AS category, COUNT(*)::int AS value FROM events WHERE tenant_id = ${tenant_id} AND ts >= ${__from} AND ts < ${__to} GROUP BY 1 ORDER BY 2 DESC LIMIT ${limit}",
+      "params": {
+        "tenant_id": { "type": "uuid" },
+        "from": { "type": "timestamptz" },
+        "to": { "type": "timestamptz" },
+        "limit": { "type": "int", "default": 20, "min": 1, "max": 1000 }
+      },
+      "bindings": {
+        "tenant_id": "${var_tenant}",
+        "from": "${__from}",
+        "to": "${__to}"
+      }
+    },
+    "dataset": {
+      "shape": "category_value",
+      "columns": {
+        "category": { "type": "string" },
+        "value": { "type": "number" }
+      }
+    },
+    "verify": {
+      "required_columns": ["category", "value"],
+      "min_rows": 1,
+      "max_rows": 1000
+    },
+    "visualization": {
+      "orientation": "vertical",
+      "showValues": true,
+      "sortOrder": "desc"
+    }
+  }
+}
+```
+
+### Line Chart (`linechart`)
+
+Line charts display time-series data with connected points, ideal for showing trends over time.
+
+#### Dataset Contract
+
+**Required Columns:**
+- `time` (timestamp): Time point for each data point (must be sortable)
+- `value` (number): Numeric value at each time point
+
+**Optional Columns:**
+- `series` (string): Series name for multiple lines. When present, multiple lines are displayed on the same chart.
+
+#### Visualization Options
+
+Configure line chart appearance and behavior using `x-navixy.visualization`:
 
 ```json
 {
@@ -603,7 +666,7 @@ Line charts display time-series data with connected points. Configure line appea
 }
 ```
 
-**Options:**
+**Available Options:**
 - `lineStyle`: `"solid"` | `"dashed"` | `"dotted"` - Line style (default: `"solid"`)
 - `lineWidth`: `number` - Line thickness in pixels (default: `2`)
 - `showPoints`: `"always"` | `"auto"` | `"never"` - When to show data points (default: `"auto"`)
@@ -615,9 +678,60 @@ Line charts display time-series data with connected points. Configure line appea
 - `legendPosition`: `"top"` | `"bottom"` | `"left"` | `"right"` - Legend placement (default: `"bottom"`)
 - `colorPalette`: `"classic"` | `"modern"` | `"pastel"` | `"vibrant"` - Color scheme (default: `"classic"`)
 
-### Pie Chart Options
+#### Example Configuration
 
-Pie charts display proportional data as circular segments. Configure appearance and labeling:
+```json
+{
+  "type": "linechart",
+  "title": "Vehicle Speed Over Time",
+  "gridPos": { "x": 0, "y": 0, "w": 24, "h": 8 },
+  "x-navixy": {
+    "sql": {
+      "statement": "SELECT device_time AS time, AVG(speed)::numeric(10,2) AS value FROM tracking_data WHERE tenant_id = ${tenant_id} AND device_time >= ${__from} AND device_time < ${__to} GROUP BY device_time ORDER BY device_time",
+      "params": {
+        "tenant_id": { "type": "uuid" },
+        "from": { "type": "timestamptz" },
+        "to": { "type": "timestamptz" }
+      },
+      "bindings": {
+        "tenant_id": "${var_tenant}",
+        "from": "${__from}",
+        "to": "${__to}"
+      }
+    },
+    "dataset": {
+      "shape": "time_series",
+      "columns": {
+        "time": { "type": "timestamp" },
+        "value": { "type": "number" }
+      }
+    },
+    "visualization": {
+      "lineStyle": "solid",
+      "lineWidth": 2,
+      "showPoints": "auto",
+      "fillArea": "below"
+    }
+  }
+}
+```
+
+### Pie Chart (`piechart`)
+
+Pie charts display proportional data as circular segments, ideal for showing parts of a whole.
+
+#### Dataset Contract
+
+**Required Columns:**
+- `category` (string): Category name for each segment
+- `value` (number): Numeric value for each segment (values should be ≥ 0, normalized to 100%)
+
+**Optional Columns:**
+- None
+
+#### Visualization Options
+
+Configure pie chart appearance and labeling using `x-navixy.visualization`:
 
 ```json
 {
@@ -638,7 +752,7 @@ Pie charts display proportional data as circular segments. Configure appearance 
 }
 ```
 
-**Options:**
+**Available Options:**
 - `donut`: `boolean` - Render as donut chart (default: `false`)
 - `donutRadius`: `number` - Inner radius ratio (0-1, default: `0.5`) - only used when `donut: true`
 - `showLabels`: `"always"` | `"auto"` | `"never"` - When to show labels (default: `"auto"`)
@@ -650,9 +764,59 @@ Pie charts display proportional data as circular segments. Configure appearance 
 - `startAngle`: `number` - Starting angle in degrees (0-360, default: `0`)
 - `colorPalette`: `"classic"` | `"modern"` | `"pastel"` | `"vibrant"` - Color scheme (default: `"classic"`)
 
-### KPI Card Options
+#### Example Configuration
 
-KPI cards display single metrics with optional context. Configure display mode and formatting:
+```json
+{
+  "type": "piechart",
+  "title": "Event Distribution",
+  "gridPos": { "x": 0, "y": 0, "w": 8, "h": 8 },
+  "x-navixy": {
+    "sql": {
+      "statement": "SELECT event_type AS category, COUNT(*)::int AS value FROM events WHERE tenant_id = ${tenant_id} AND ts >= ${__from} AND ts < ${__to} GROUP BY 1",
+      "params": {
+        "tenant_id": { "type": "uuid" },
+        "from": { "type": "timestamptz" },
+        "to": { "type": "timestamptz" }
+      },
+      "bindings": {
+        "tenant_id": "${var_tenant}",
+        "from": "${__from}",
+        "to": "${__to}"
+      }
+    },
+    "dataset": {
+      "shape": "category_value",
+      "columns": {
+        "category": { "type": "string" },
+        "value": { "type": "number" }
+      }
+    },
+    "visualization": {
+      "showLabels": "auto",
+      "labelFormat": "name_percent",
+      "sortOrder": "desc"
+    }
+  }
+}
+```
+
+### KPI Card (`kpi`)
+
+KPI cards display single metrics with optional context (delta, trend), ideal for key performance indicators.
+
+#### Dataset Contract
+
+**Required Columns:**
+- `value` (number): Main metric value (single row expected; uses first row if multiple)
+
+**Optional Columns:**
+- `delta` (number): Change value for delta display
+- `trend` (string): Trend direction - `"up"`, `"down"`, or `"stable"`
+
+#### Visualization Options
+
+Configure KPI card display mode and formatting using `x-navixy.visualization`:
 
 ```json
 {
@@ -675,7 +839,7 @@ KPI cards display single metrics with optional context. Configure display mode a
 }
 ```
 
-**Options:**
+**Available Options:**
 - `displayMode`: `"value"` | `"value_delta"` | `"value_trend"` | `"value_delta_trend"` - What to display (default: `"value"`)
   - `"value"`: Show only the main value
   - `"value_delta"`: Show value with delta (requires `delta` column)
@@ -689,11 +853,60 @@ KPI cards display single metrics with optional context. Configure display mode a
 - `thresholds`: `array` - Color thresholds `[{value: number | null, color: string}]` (default: `[{value: null, color: "green"}]`)
 - `size`: `"compact"` | `"normal"` | `"large"` - Card size (default: `"normal"`)
 
-**Dataset Enhancement:** For `value_delta` mode, dataset may include optional `delta:number` column. For `value_trend` mode, dataset may include optional `trend:string` column with values `"up"`, `"down"`, or `"stable"`.
+#### Example Configuration
 
-### Table Options
+```json
+{
+  "type": "kpi",
+  "title": "Active Vehicles",
+  "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
+  "x-navixy": {
+    "sql": {
+      "statement": "SELECT COUNT(DISTINCT device_id)::int AS value FROM raw_telematics_data.tracking_data_core WHERE tenant_id = ${tenant_id} AND device_time >= ${__from}",
+      "params": {
+        "tenant_id": { "type": "uuid" },
+        "from": { "type": "timestamptz" }
+      },
+      "bindings": {
+        "tenant_id": "${var_tenant}",
+        "from": "${__from}"
+      }
+    },
+    "dataset": {
+      "shape": "kpi",
+      "columns": {
+        "value": { "type": "number" }
+      }
+    },
+    "verify": {
+      "required_columns": ["value"],
+      "min_rows": 1,
+      "max_rows": 1
+    },
+    "visualization": {
+      "displayMode": "value",
+      "valueFormat": "short",
+      "unit": "vehicles"
+    }
+  }
+}
+```
 
-Tables display tabular data with rows and columns. Configure display and interaction:
+### Table (`table`)
+
+Tables display tabular data with rows and columns, ideal for detailed data exploration.
+
+#### Dataset Contract
+
+**Required Columns:**
+- Any columns - Tables accept any column structure
+
+**Optional Columns:**
+- Any additional columns
+
+#### Visualization Options
+
+Configure table display and interaction using `x-navixy.visualization`:
 
 ```json
 {
@@ -712,7 +925,7 @@ Tables display tabular data with rows and columns. Configure display and interac
 }
 ```
 
-**Options:**
+**Available Options:**
 - `showHeader`: `boolean` - Show column headers (default: `true`)
 - `sortable`: `boolean` - Enable column sorting (default: `true`)
 - `pageSize`: `number` - Rows per page (default: `25`)
@@ -722,32 +935,60 @@ Tables display tabular data with rows and columns. Configure display and interac
 - `showTotals`: `boolean` - Show totals row (default: `false`)
 - `totalsRow`: `"top"` | `"bottom"` - Totals row position (default: `"bottom"`) - only used when `showTotals: true`
 
-### Annotation Options
-
-Annotations mark events on time-series charts. Configure appearance:
+#### Example Configuration
 
 ```json
 {
+  "type": "table",
+  "title": "Recent Events",
+  "gridPos": { "x": 0, "y": 0, "w": 24, "h": 10 },
   "x-navixy": {
+    "sql": {
+      "statement": "SELECT device_id, event_type, device_time, location FROM events WHERE tenant_id = ${tenant_id} AND ts >= ${__from} AND ts < ${__to} ORDER BY device_time DESC LIMIT 100",
+      "params": {
+        "tenant_id": { "type": "uuid" },
+        "from": { "type": "timestamptz" },
+        "to": { "type": "timestamptz" }
+      },
+      "bindings": {
+        "tenant_id": "${var_tenant}",
+        "from": "${__from}",
+        "to": "${__to}"
+      }
+    },
+    "dataset": {
+      "shape": "table",
+      "columns": {
+        "device_id": { "type": "string" },
+        "event_type": { "type": "string" },
+        "device_time": { "type": "timestamp" },
+        "location": { "type": "string" }
+      }
+    },
     "visualization": {
-      "iconColor": "rgba(0, 211, 255, 1)",
-      "iconShape": "circle",
-      "showText": true,
-      "textPosition": "right"
+      "sortable": true,
+      "pageSize": 25,
+      "showPagination": true
     }
   }
 }
 ```
 
-**Options:**
-- `iconColor`: `string` - Marker color (RGBA or hex, default: `"rgba(0, 211, 255, 1)"`)
-- `iconShape`: `"circle"` | `"square"` | `"diamond"` | `"triangle"` - Marker shape (default: `"circle"`)
-- `showText`: `boolean` - Show annotation text (default: `true`)
-- `textPosition`: `"left"` | `"right"` | `"top"` | `"bottom"` - Text position relative to marker (default: `"right"`)
-
-### Text Panel Options
+### Text Panel (`text`)
 
 Text panels display static text content, markdown, HTML, or code snippets. They do not require SQL queries and are useful for adding contextual information, instructions, links, or documentation to dashboards.
+
+#### Dataset Contract
+
+**Required Columns:**
+- None - Text panels do not require data queries
+
+**Optional Columns:**
+- None
+
+#### Configuration Options
+
+Text panels use standard panel `options` (not `x-navixy.visualization`):
 
 ```json
 {
@@ -761,7 +1002,7 @@ Text panels display static text content, markdown, HTML, or code snippets. They 
 }
 ```
 
-**Options:**
+**Available Options:**
 - `mode`: `"markdown"` | `"html"` | `"code"` - Content rendering mode (default: `"markdown"`)
   - `"markdown"`: Formats content as markdown with support for headers, lists, links, code blocks, etc.
   - `"html"`: Renders content as sanitized HTML. For more direct control, HTML sanitization can be disabled via configuration.
@@ -793,6 +1034,78 @@ Text panels support dashboard variable expansion in content. Variables are expan
 
 **Security Note:**
 When using HTML mode, content is sanitized by default to prevent XSS attacks. If HTML sanitization is disabled via configuration, ensure that only trusted content is displayed.
+
+#### Example Configurations
+
+**Markdown Mode:**
+```json
+{
+  "type": "text",
+  "title": "Dashboard Guide",
+  "gridPos": { "x": 0, "y": 0, "w": 12, "h": 6 },
+  "options": {
+    "mode": "markdown",
+    "content": "# Fleet Status Dashboard\n\nThis dashboard provides real-time monitoring of your vehicle fleet.\n\n## Key Metrics\n- **Active Vehicles**: Number of vehicles currently being tracked\n- **Events**: Recent telematics events including speeding, harsh braking, and geofence alerts"
+  }
+}
+```
+
+**Code Mode:**
+```json
+{
+  "type": "text",
+  "title": "SQL Query Example",
+  "gridPos": { "x": 0, "y": 6, "w": 12, "h": 8 },
+  "options": {
+    "mode": "code",
+    "content": "SELECT device_id, COUNT(*) as message_count\nFROM tracking_data_core\nWHERE device_time >= NOW() - INTERVAL '24 hours'\nGROUP BY device_id\nORDER BY message_count DESC\nLIMIT 10;",
+    "code": {
+      "language": "sql",
+      "showLineNumbers": true,
+      "showMiniMap": false
+    }
+  }
+}
+```
+
+### Annotation (`annotation`)
+
+Annotations mark events on time-series charts. They are typically configured at the dashboard level but can also be used as panel overlays.
+
+#### Dataset Contract
+
+**Required Columns:**
+- None - Annotations are typically static or configured via dashboard-level annotation queries
+
+**Optional Columns:**
+- `text` (string): Annotation text to display
+
+#### Visualization Options
+
+Configure annotation appearance using `x-navixy.visualization`:
+
+```json
+{
+  "x-navixy": {
+    "visualization": {
+      "iconColor": "rgba(0, 211, 255, 1)",
+      "iconShape": "circle",
+      "showText": true,
+      "textPosition": "right"
+    }
+  }
+}
+```
+
+**Available Options:**
+- `iconColor`: `string` - Marker color (RGBA or hex, default: `"rgba(0, 211, 255, 1)"`)
+- `iconShape`: `"circle"` | `"square"` | `"diamond"` | `"triangle"` - Marker shape (default: `"circle"`)
+- `showText`: `boolean` - Show annotation text (default: `true`)
+- `textPosition`: `"left"` | `"right"` | `"top"` | `"bottom"` - Text position relative to marker (default: `"right"`)
+
+#### Example Configuration
+
+Annotations are typically configured at the dashboard level (see [Dashboard-Level Annotations](#annotations) section). For panel-specific annotations, refer to the dashboard-level annotation configuration.
 
 ## SQL Execution API
 
@@ -1002,92 +1315,16 @@ See the [Security Guide](security/README.md) for detailed security documentation
 
 See [`fleet-status-dashboard.json`](examples/fleet-status-dashboard.json) for a complete working example.
 
-### Panel Examples
+### Panel Type Examples
 
-#### KPI Panel
-```json
-{
-  "type": "kpi",
-  "title": "Active Vehicles",
-  "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
-  "x-navixy": {
-    "sql": {
-      "statement": "SELECT COUNT(DISTINCT device_id)::int AS value FROM raw_telematics_data.tracking_data_core WHERE tenant_id = ${tenant_id} AND device_time >= ${__from}",
-      "params": { "tenant_id": { "type": "uuid" }, "from": { "type": "timestamptz" } },
-      "bindings": { "tenant_id": "${var_tenant}", "from": "${__from}" }
-    },
-    "dataset": { "shape": "kpi", "columns": { "value": { "type": "number" } } },
-    "verify": { "required_columns": ["value"], "min_rows": 1, "max_rows": 1 }
-  }
-}
-```
+For detailed panel type examples with complete configuration, see the [Panel Types](#panel-types) section:
 
-#### Bar Chart Panel
-```json
-{
-  "type": "barchart",
-  "title": "Events by Type",
-  "gridPos": { "x": 4, "y": 0, "w": 12, "h": 8 },
-  "x-navixy": {
-    "sql": {
-      "statement": "SELECT event_type AS category, COUNT(*)::int AS value FROM events WHERE tenant_id = ${tenant_id} AND ts >= ${__from} AND ts < ${__to} GROUP BY 1 ORDER BY 2 DESC LIMIT ${limit}",
-      "params": {
-        "tenant_id": { "type": "uuid" },
-        "from": { "type": "timestamptz" },
-        "to": { "type": "timestamptz" },
-        "limit": { "type": "int", "default": 20, "min": 1, "max": 1000 }
-      },
-      "bindings": { "tenant_id": "${var_tenant}", "from": "${__from}", "to": "${__to}" }
-    },
-    "dataset": { "shape": "category_value", "columns": { "category": { "type": "string" }, "value": { "type": "number" } } },
-    "verify": { "required_columns": ["category", "value"], "min_rows": 1, "max_rows": 1000 }
-  }
-}
-```
-
-#### Text Panel
-```json
-{
-  "type": "text",
-  "title": "Dashboard Guide",
-  "gridPos": { "x": 0, "y": 0, "w": 12, "h": 6 },
-  "options": {
-    "mode": "markdown",
-    "content": "# Fleet Status Dashboard\n\nThis dashboard provides real-time monitoring of your vehicle fleet.\n\n## Key Metrics\n- **Active Vehicles**: Number of vehicles currently being tracked\n- **Events**: Recent telematics events including speeding, harsh braking, and geofence alerts\n\n## Usage\nSelect a time range using the time picker above. Variables can be used to filter data by tenant or other criteria.\n\n[View Full Documentation](https://docs.example.com/fleet-dashboard)"
-  }
-}
-```
-
-Text panel with code mode:
-```json
-{
-  "type": "text",
-  "title": "SQL Query Example",
-  "gridPos": { "x": 0, "y": 6, "w": 12, "h": 8 },
-  "options": {
-    "mode": "code",
-    "content": "SELECT device_id, COUNT(*) as message_count\nFROM tracking_data_core\nWHERE device_time >= NOW() - INTERVAL '24 hours'\nGROUP BY device_id\nORDER BY message_count DESC\nLIMIT 10;",
-    "code": {
-      "language": "sql",
-      "showLineNumbers": true,
-      "showMiniMap": false
-    }
-  }
-}
-```
-
-Text panel with variable expansion:
-```json
-{
-  "type": "text",
-  "title": "Current Context",
-  "gridPos": { "x": 12, "y": 0, "w": 12, "h": 4 },
-  "options": {
-    "mode": "markdown",
-    "content": "**Tenant**: ${var_tenant}\n\n**Time Range**: ${__from} to ${__to}"
-  }
-}
-```
+- [Bar Chart Example](#bar-chart-barchart) - Events by Type visualization
+- [Line Chart Example](#line-chart-linechart) - Vehicle Speed Over Time
+- [Pie Chart Example](#pie-chart-piechart) - Event Distribution
+- [KPI Card Example](#kpi-card-kpi) - Active Vehicles metric
+- [Table Example](#table-table) - Recent Events table
+- [Text Panel Examples](#text-panel-text) - Markdown and code mode examples
 
 ## Developer Workflow
 
