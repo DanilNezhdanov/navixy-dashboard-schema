@@ -46,17 +46,7 @@
         },
         "dataset": {
           "shape": "time_value",
-          "columns": {
-            "time": {
-              "type": "timestamptz"
-            },
-            "messages": {
-              "type": "integer"
-            },
-            "unique_devices": {
-              "type": "integer"
-            }
-          }
+          "columns": {}
         },
         "visualization": {
           "lineStyle": "solid",
@@ -165,7 +155,7 @@
       "type": "barchart",
       "title": "Sample Data by Category",
       "gridPos": {
-        "h": 10,
+        "h": 15,
         "w": 18,
         "x": 0,
         "y": 13
@@ -229,7 +219,7 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 23
+        "y": 28
       },
       "options": {
         "sortBy": [],
@@ -312,7 +302,7 @@
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 23
+        "y": 28
       },
       "options": {
         "pieType": "donut"
@@ -334,12 +324,12 @@
     {
       "id": 8,
       "type": "table",
-      "title": "New table",
+      "title": "Recent Vehicle Movements",
       "gridPos": {
-        "h": 19,
-        "w": 24,
         "x": 0,
-        "y": 32
+        "y": 37,
+        "w": 24,
+        "h": 25
       },
       "options": {
         "showHeader": true
@@ -347,17 +337,33 @@
       "x-navixy": {
         "sql": {
           "params": {},
-          "statement": "WITH latest AS (\nSELECT device_id, device_time, latitude, longitude, ROW_NUMBER() OVER (PARTITION BY device_id\nORDER BY device_time DESC) AS rn\nFROM raw_telematics_data.tracking_data_core )\nSELECT device_id AS \"Device ID\", latitude::float / 10000000 AS \"Latitude\", longitude::float / 10000000 AS \"Longitude\", TO_CHAR(device_time, 'Mon DD, YYYY HH12:MI AM') AS \"Last Updated\"\nFROM latest\nWHERE rn = 1\nORDER BY device_id LIMIT 100;"
+          "statement": "SELECT\n  to_char(t.device_time, 'YYYY-MM-DD HH24:MI:SS TZ') AS \"Timestamp\",\n  t.device_id                                       AS \"Device ID\",\n  t.speed                                           AS \"Speed\",\n  round(t.latitude::numeric  / 10000000, 6)         AS \"Latitude (°)\",\n  round(t.longitude::numeric / 10000000, 6)         AS \"Longitude (°)\"\nFROM raw_telematics_data.tracking_data_core t\nWHERE t.device_time >= NOW() - INTERVAL '3 days'\n  AND t.speed > 0\nORDER BY t.device_time DESC;"
         },
         "verify": {
           "max_rows": 3
         },
         "dataset": {
           "shape": "table",
-          "columns": {}
+          "columns": {
+            "Timestamp": {
+              "type": "string"
+            },
+            "Device ID": {
+              "type": "integer"
+            },
+            "Speed": {
+              "type": "integer"
+            },
+            "Latitude (°)": {
+              "type": "number"
+            },
+            "Longitude (°)": {
+              "type": "number"
+            }
+          }
         },
         "visualization": {
-          "pageSize": 5,
+          "pageSize": 25,
           "sortable": true,
           "showHeader": true,
           "showTotals": false,
@@ -370,10 +376,10 @@
       "type": "text",
       "title": "Text panel",
       "gridPos": {
-        "x": 0,
-        "y": 51,
-        "w": 24,
-        "h": 4
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 23
       },
       "options": {
         "mode": "markdown",
@@ -390,7 +396,7 @@
       }
     }
   ],
-  "refresh": "1m",
+  "refresh": "30s",
   "version": 1,
   "editable": true,
   "timezone": "browser",
